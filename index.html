@@ -148,8 +148,17 @@ function go() {
   statusEl.style.display = "block";
   statusEl.innerHTML = "&#9203 Сбор информации...";
 
-  getRegions();
-  getWarps();
+  if(localStorage[world] != undefined) {
+    var ls = JSON.parse(localStorage[world]);
+    regions_db = ls['regions'];
+    warps_db = ls['warps'];
+    parseRegions(regions_db);
+    parseWarps(warps_db);
+    statusEl.innerHTML = "&#9989 100%";
+  } else {
+    getRegions();
+    getWarps();
+  }
 }
 
 function fitToScreen() {
@@ -222,10 +231,73 @@ function recalculateProgress() {
     statusEl.style.display = "";
     statusEl.innerHTML = "&#9203 " + progress + "%";
     if(progress == 100) {
-      var jsonObj = JSON.stringify({'world': world, 'regions': regions_db, 'warps': warps_db});
       statusEl.innerHTML = "&#9989 100%";
+      localStorage[world] = JSON.stringify({'regions': regions_db, 'warps': warps_db});
     }
   }
+}
+
+function parseRegions(regions) {
+  var a = document.createDocumentFragment();
+
+  for(var x = 0; x < regions.length; x++) {
+   var region = regions[x];
+
+    var max = Math.max(Math.abs(region['min_x']), Math.abs(region['max_x']), Math.abs(region['min_z']), Math.abs(region['max_z']));
+    if(max > size) {
+      size = max;
+      changeMapSize(size);
+    }
+
+    var xlength = Math.abs(region['min_x'] - region['max_x'])*1;
+    var xmin = Math.min(region['min_x'], region['max_x'])*1;
+    var xcenter = ((xmin + xlength/2)|0);
+
+    var zlength = Math.abs(region['min_z'] - region['max_z'])*1;
+    var zmin = Math.min(region['min_z'], region['max_z'])*1;
+    var zcenter = ((zmin + zlength/2)|0);
+
+    var ylength = Math.max(region['min_y'], region['max_y']) - Math.min(region['min_y'], region['max_y']);
+    var ycenter = ((Math.min(region['min_y'], region['max_y'])+ylength/2)|0);
+
+    var value = (xlength+1)*(zlength+1)*(ylength+1);
+
+    var regionbolshe1kk = value > 1000000 ? " regionbolshe1kk" : "";
+    var bezvladelca = region['owners'].length == 0 ? " bezvladelca" : "";
+
+    var members = "-";
+    if(region['members'].length != 0) {
+      members = [];
+      for(var y = 0; y < region['members'].length; y++) {
+        members.push(api.player(region['members'][y]));
+      }
+      members = members.join(", ");
+    }
+
+    var owners = "-";
+    if(region['owners'].length != 0) {
+      owners = [];
+      for(var y = 0; y < region['owners'].length; y++) {
+        owners.push(api.player(region['owners'][y]));
+      }
+      owners = owners.join(", ");
+    }
+
+    var b = document.createElement("div");
+    b.setAttribute("class", "region " + (region['parent'] != null ? "local" : "") + regionbolshe1kk + bezvladelca);
+    b.setAttribute("style", "margin:" + zmin + "px 0 0 " + xmin + "px;width:" + xlength + "px;height:" + zlength + "px;");
+    b.setAttribute("title", region['region'] + ", /tp " + ((Math.min(region['min_x'], region['max_x'])+Math.abs(region['min_x'] - region['max_x'])/2)|0)+","+ycenter+","+((Math.min(region['min_z'], region['max_z'])+Math.abs(region['min_z'] - region['max_z'])/2)|0));
+    b.setAttribute("data-title", "<b>Регион:</b> " + api.region(region['region'], world) + ", " + api.coord(xcenter, ycenter, zcenter, world) + "<br>"
+      +"<b>Владельцы:</b> "+owners+"<br>"
+      +"<b>Жители:</b> "+members+"<br>"
+      +"<b>Флаги:</b> "+(region['flags'].length==0?"-":region['flags'].join(", "))+"<br>"
+      +"<b>Объём:</b> "+(xlength+1)+"&times;"+(ylength+1)+"&times;"+(zlength+1)+" = "+api.number(value)+" блок(ов)<br>"
+      +"<b>Дата создания:</b> "+api.time(region['created']) );
+
+    a.appendChild(b);
+  }
+
+  map.appendChild(a);
 }
 
 function getRegions(offset) {
@@ -238,76 +310,43 @@ function getRegions(offset) {
 
       var regions = data['regions'];
       regionsLoaded = (regions.length + offset);
-      recalculateProgress();
 
       regions_db = regions_db.concat(regions);
+      recalculateProgress();
 
-      var a = document.createDocumentFragment();
-
-      for(var x = 0; x < regions.length; x++) {
-      
- var region = regions[x];
-
-        var max = Math.max(Math.abs(region['min_x']), Math.abs(region['max_x']), Math.abs(region['min_z']), Math.abs(region['max_z']));
-        if(max > size) {
-          size = max;
-          changeMapSize(size);
-        }
-
-        var xlength = Math.abs(region['min_x'] - region['max_x'])*1;
-        var xmin = Math.min(region['min_x'], region['max_x'])*1;
-        var xcenter = ((xmin + xlength/2)|0);
-
-        var zlength = Math.abs(region['min_z'] - region['max_z'])*1;
-        var zmin = Math.min(region['min_z'], region['max_z'])*1;
-        var zcenter = ((zmin + zlength/2)|0);
-
-        var ylength = Math.max(region['min_y'], region['max_y']) - Math.min(region['min_y'], region['max_y']);
-        var ycenter = ((Math.min(region['min_y'], region['max_y'])+ylength/2)|0);
-
-        var value = (xlength+1)*(zlength+1)*(ylength+1);
-
-        var ololoazaza = value > 1000000 ? " ololoazaza" : "";
-        var bezvladelca = region['owners'].length == 0 ? " bezvladelca" : "";
-
-        var members = "-";
-        if(region['members'].length != 0) {
-          members = [];
-          for(var y = 0; y < region['members'].length; y++) {
-            members.push(api.player(region['members'][y]));
-          }
-          members = members.join(", ");
-        }
-
-        var owners = "-";
-        if(region['owners'].length != 0) {
-          owners = [];
-          for(var y = 0; y < region['owners'].length; y++) {
-            owners.push(api.player(region['owners'][y]));
-          }
-          owners = owners.join(", ");
-        }
-
-        var b = document.createElement("div");
-        b.setAttribute("class", "region " + (region['parent'] != null ? "local" : "") + ololoazaza + bezvladelca);
-        b.setAttribute("style",
-"margin:" + zmin + "px 0 0 " + xmin + "px;width:" + xlength + "px;height:" + zlength + "px;");
-        b.setAttribute("title", region['region'] + ", /tp " + ((Math.min(region['min_x'], region['max_x'])+Math.abs(region['min_x'] - region['max_x'])/2)|0)+","+ycenter+","+((Math.min(region['min_z'], region['max_z'])+Math.abs(region['min_z'] - region['max_z'])/2)|0));
-        b.setAttribute("data-title", "<b>Регион:</b> " + api.region(region['region'], world) + ", " + api.coord(xcenter, ycenter, zcenter, world) + "<br>"
-          +"<b>Владельцы:</b> "+owners+"<br>"
-          +"<b>Жители:</b> "+members+"<br>"
-          +"<b>Флаги:</b> "+(region['flags'].length==0?"-":region['flags'].join(", "))+"<br>"
-          +"<b>Объём:</b> "+(xlength+1)+"&times;"+(ylength+1)+"&times;"+(zlength+1)+" = "+api.number(value)+" блок(ов)<br>"
-          +"<b>Дата создания:</b> "+api.time(region['created']) );
-
-        a.appendChild(b);
-      }
-
-      map.appendChild(a);
+      parseRegions(regions);
 
       if(data['count'] > 100) getRegions(offset + 100);
     }
   });
+}
+
+function parseWarps(warps) {
+  var a = document.createDocumentFragment();
+
+  for(var x = 0; x < warps.length; x++) {
+    var warp = warps[x];
+
+    var xpos = Math.round(warp['x']);
+    var ypos = Math.round(warp['y']);
+    var zpos = Math.round(warp['z']);
+
+    var max = Math.max(Math.abs(xpos), Math.abs(zpos));
+    if(max > size) {
+      size = max;
+      changeMapSize(size);
+    }
+
+    var b = document.createElement("div");
+    b.setAttribute("class", "warp");
+    b.setAttribute("style", "margin:"+zpos+"px 0 0 "+xpos+"px;-webkit-transform:rotate(" + Math.round(warp['yaw'])+ "deg);");
+    b.setAttribute("data-title", "<b>Варп:</b> " + api.warp(warp['warp'], world) + ", " + api.coord(xpos, ypos, zpos, world) + "<br><b>Владелец:</b> " + api.player(warp['owner']) + "<br><b>Дата создания:</b> " + api.time(warp['created']));
+    b.innerHTML = "&darr;";
+
+    a.appendChild(b);
+  }
+
+  map.appendChild(a);
 }
 
 function getWarps(offset) {
@@ -320,35 +359,11 @@ function getWarps(offset) {
 
       var warps = data['warps'];
       warpsLoaded = (warps.length + offset);
-      recalculateProgress();
 
       warps_db = warps_db.concat(warps);
+      recalculateProgress();
 
-      var a = document.createDocumentFragment();
-
-      for(var x = 0; x < warps.length; x++) {
-        var warp = warps[x];
-
-        var xpos = Math.round(warp['x']);
-        var ypos = Math.round(warp['y']);
-        var zpos = Math.round(warp['z']);
-
-        var max = Math.max(Math.abs(xpos), Math.abs(zpos));
-        if(max > size) {
-          size = max;
-          changeMapSize(size);
-        }
-
-        var b = document.createElement("div");
-        b.setAttribute("class", "warp");
-        b.setAttribute("style", "margin:"+zpos+"px 0 0 "+xpos+"px;-webkit-transform:rotate(" + Math.round(warp['yaw'])+ "deg);");
-        b.setAttribute("data-title", "<b>Варп:</b> " + api.warp(warp['warp'], world) + ", " + api.coord(xpos, ypos, zpos, world) + "<br><b>Владелец:</b> " + api.player(warp['owner']) + "<br><b>Дата создания:</b> " + api.time(warp['created']));
-        b.innerHTML = "&darr;";
-
-        a.appendChild(b);
-      }
-
-      map.appendChild(a);
+      parseWarps(warps);
 
       if(data['count'] > Math.max(data['offset'], 100)) getWarps(offset + 100);
     }
