@@ -1,0 +1,367 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <meta content="width=device-width; initial-scale=1.0; maximum-scale=1.0; user-scalable=no;" name="viewport" />
+  <title>Ensemplix MAP by web93onv</title>
+  <style>
+  * {
+    font-family: sans;
+  }
+  body {
+    margin: 0;
+    width:100%;
+    height:100%;
+    background: #eee;
+  }
+  #map {
+    position: absolute;
+    background: #fff;
+  }
+  .region {
+    position: absolute;
+    border: 1px solid black;
+    background: #efefef;
+    z-index: 1;
+    opacity: .5;
+  }
+  .region:hover {
+    border: 1px solid red;
+    opacity: 1;
+  }
+  .region.local {
+    z-index: 2;
+  }
+  .regionbolshe1kk {
+    border: 1px solid #FF002D;
+    background: #DF6378;
+  }
+  .bezvladelca {
+    border: 1px solid #2D00FF;
+    background: #7863DF;
+  }
+  .warp {
+    position: absolute;
+    width: 15px;
+    height: 15px;
+    border: 1px solid black;
+    background: yellow;
+    border-radius: 15px;
+    z-index: 5;
+  }
+  .warp:hover {
+    border: 1px solid red;
+    z-index: 6;
+  }
+  </style>
+  <script src="http://ajax.googleapis.com/ajax/libs/jquery/1.11.0/jquery.min.js"></script>
+  <script>var world;</script>
+</head>
+<body>
+
+<div id="map" style="position:absolute;width:500px;height:500px;padding:500px 0 0 500px;background:white;">
+  <div id="h" style="position:absolute;z-index:1;background:silver;width:1000px;height:1px;margin:0 0 0 -500px;"></div>
+  <div id="v" style="position:absolute;z-index:1;background:silver;width:1px;height:1000px;margin:-500px 0 0 0;"></div>
+
+  <div style="position:absolute;z-index:1;background:white;border:1px solid silver;width:10px;height:10px;border-radius:10px;margin:-6px 0 0 -6px;"></div>
+  <div id="position" style="-webkit-transition:all .1s;box-shadow:0 0 3px silver;background:white;border:1px dotted grey;position:absolute;z-index:7;width:10px;height:10px;border-radius:10px;margin:-6px 0 0 -6px;display:none;"></div>
+</div>
+
+<script>
+map.onclick = function (event) {
+  zoom = Number(zoomSlider.value) / 200;
+  xpos = event.pageX / zoom - Number(map.style.width.match(/\d+/));
+  zpos = event.pageY / zoom - Number(map.style.height.match(/\d+/));
+  position.style.margin = (zpos - 6) + "px 0 0 " + (xpos - 6) + "px";
+  position.style.display = "";
+  statusEl.innerHTML = "<b>&#9447</b> " + Math.floor(xpos) + ", <b>&#9449</b> " + Math.floor(zpos);
+}
+</script>
+
+<div id="serverSelect" style="position:fixed;top:10px;left:10px;background:#fff;box-shadow:0 0 3px grey;padding:15px;opacity:.9;z-index:20;display:none;">
+  <input type="radio" name="server" id="customServer" /> <input type="text" onfocus="customServer.checked=true" placeholder="Название сервера" style="border:0;background:inherit;padding:0;margin:0;font-size:inherit;" onchange="customServer.value=this.value;" onkeydown="customServer.value=this.value;" onkeyup="customServer.value=this.value;" /><br />
+  <input type="button" value="Загрузить" onclick="go()" />
+</div>
+
+<div style="position:fixed;bottom:0;left:0;padding:0 0 15px 25px;z-index:20;color:white;font-weight:bold;text-shadow:0 0 2px black;">
+  <span id="serverLabel"></span> <span id="serverSize"></span>
+</div>
+
+<div style="position:fixed;top:10px;right:10px;background:#fff;color:#666;box-shadow:0 0 3px grey;padding:0 10px 10px 10px;opacity:.9;z-index:20;">
+  <table cellpadding="0" cellspacing="0"><tr><td>
+    <span id="zoomval">0.5</span>
+  </td><td>
+    <input id="zoomSlider" type="range" onchange="zoom=this.value/200;map.style.zoom=zoom;zoomval.innerHTML=zoom;" min="20" max="200" step="1" value="100" />
+  </td></tr></table>
+  <input type="button" value="100%" onclick="zoomUpdate(1)" />
+  <input type="button" value="Вместить" onclick="fitToScreen()" />
+  <input type="button" value="Заполнить" onclick="fillTheScreen()" />
+</div>
+
+<div id="statusEl" style="position:fixed;bottom:0;right:10px;background:#fff;color:#666;box-shadow:0 0 3px grey;padding:15px;min-width:250px;opacity:.9;z-index:20;">
+  &#9203 Инициализация...
+</div>
+
+<script>
+var api = {
+  'player': function(player) {
+    return "<a target='_blank' href='http://web93onv.github.io/Ensemplix-INFO-by-web93onv/#player/" + player + "'>" + player + "</a>";
+  },
+  'region': function(region, world) {
+    return "<a target='_blank' href='http://web93onv.github.io/Ensemplix-INFO-by-web93onv/#world/" + world + "/region/" + region + "'>" + region + "</a>";
+  },
+  'warp': function(warp, world) {
+    return "<a target='_blank' href='http://web93onv.github.io/Ensemplix-INFO-by-web93onv/#world/" + world + "/warp/" + warp + "'>" + warp + "</a>";
+  },
+  'coord': function(xpos, ypos, zpos, world) {
+    return "<a target='_blank' href='http://web93onv.github.io/Ensemplix-INFO-by-web93onv/#world/" + world + "/coord/" + xpos + "," + ypos + "," + zpos + "'>" + xpos + "," + ypos + "," + zpos + "</a>";
+  },
+  'time': function (timestamp) {
+    var a = new Date(timestamp * 1000);
+    var year = a.getFullYear();
+    var month = a.getMonth() + 1 < 10 ? "0" + (a.getMonth() + 1) : a.getMonth() + 1;
+    var date = a.getDate() < 10 ? "0" + a.getDate() : a.getDate();
+    var hour = a.getHours() < 10 ? "0" + a.getHours() : a.getHours();
+    var min = a.getMinutes() < 10 ? "0" + a.getMinutes() : a.getMinutes();
+    var sec = a.getSeconds() < 10 ? "0" + a.getSeconds() : a.getSeconds();
+    return year+"-"+month+"-"+date+" "+hour+":"+min+":"+sec;
+  },
+  'number': function (e) { return (e || 0).toString().replace(/(\d)(?=(\d\d\d)+([^\d]|$))/g, '$1&thinsp;'); },
+  'html': function (str) { return String(str).replace(/</g, '&#60;').replace(/>/g, '&#62;'); }
+};
+
+function go() {
+  var i = document.getElementsByName("server");
+  var value;
+  for(var x = 0; x < i.length; x++) {
+    if(i.item(x).checked) {
+      value = i.item(x).value;
+      break;
+    }
+  }
+
+  world = value;
+  serverSelect.style.display = "none";
+
+  serverLabel.innerHTML = value;
+
+  statusEl.style.display = "block";
+  statusEl.innerHTML = "&#9203 Сбор информации...";
+
+  getRegions();
+  getWarps();
+}
+
+function fitToScreen() {
+  zoom1 = innerWidth / (Number(map.style.width.match(/\d+/))*2);
+  zoom2 = innerHeight / (Number(map.style.height.match(/\d+/))*2);
+  zoom = zoom1 > zoom2 ? zoom2 : zoom1;
+
+  zoomUpdate(zoom);
+}
+function fillTheScreen() {
+  zoom1 = innerWidth / (Number(map.style.width.match(/\d+/))*2);
+  zoom2 = innerHeight / (Number(map.style.height.match(/\d+/))*2);
+  zoom = zoom1 < zoom2 ? zoom2 : zoom1;
+
+  zoomUpdate(zoom);
+}
+function zoomUpdate(zoom) {
+  zoom = zoom <= 1 ? zoom : 1;
+  map.style.zoom = zoom;
+  zoomSlider.value = zoom * 200;
+  zoomval.innerHTML = zoom;
+}
+
+var servers = [];
+
+document.addEventListener("load", (function (e) {
+  fitToScreen();
+  statusEl.innerHTML = "&#9203 Загрузка информации о доступных серверах...";
+
+  $.ajax({
+    url: "http://api.ensemplix.ru/v2/server/game",
+    success: function(data) {
+      var result = "";
+
+      for(var x = 0; x < data.length; x++) {
+        servers.push(data[x]['world']);
+        result += "<label><input type='radio' name='server' value='" + data[x]['world'] + "'" + (x == 0 ? "checked" : "") + " /> " + data[x]['world'] + "</label><br />";
+      }
+
+      statusEl.style.display = "none";
+
+      serverSelect.innerHTML = result + serverSelect.innerHTML;
+      serverSelect.style.display = "block";
+    }
+  });
+})());
+
+var regions_db = [];
+var warps_db = [];
+var size = 500;
+
+function changeMapSize(size) {
+  map.style.width = size + "px";
+  map.style.height = size + "px";
+  map.style.padding = size + "px 0 0 " + size + "px";
+  h.style.width = size * 2 + "px";
+  h.style.margin = "0 0 0 -" + size + "px";
+  v.style.height = size * 2 + "px";
+  v.style.margin = "-" + size + "px 0 0 0";
+  serverSize.innerHTML = "" + size * 2 + "&times;" + size * 2;
+}
+
+var regionsValue, regionsLoaded;
+var warpsValue, warpsLoaded;
+var progress;
+
+function recalculateProgress() {
+  if(regionsValue && warpsValue) {
+    progress = Math.round((regionsLoaded + warpsLoaded) / (regionsValue + warpsValue) * 100);
+    statusEl.style.display = "";
+    statusEl.innerHTML = "&#9203 " + progress + "%";
+    if(progress == 100) {
+      var jsonObj = JSON.stringify({'world': world, 'regions': regions_db, 'warps': warps_db});
+      statusEl.innerHTML = "&#9989 100%";
+    }
+  }
+}
+
+function getRegions(offset) {
+  offset = offset || 0;
+
+  $.ajax({
+    url: "http://api.ensemplix.ru/v2/regions/?world=" + world + "&offset=" + offset,
+    success: function(data) {
+      if(offset == 0) regionsValue = data['count'];
+
+      var regions = data['regions'];
+      regionsLoaded = (regions.length + offset);
+      recalculateProgress();
+
+      regions_db = regions_db.concat(regions);
+
+      var a = document.createDocumentFragment();
+
+      for(var x = 0; x < regions.length; x++) {
+      
+ var region = regions[x];
+
+        var max = Math.max(Math.abs(region['min_x']), Math.abs(region['max_x']), Math.abs(region['min_z']), Math.abs(region['max_z']));
+        if(max > size) {
+          size = max;
+          changeMapSize(size);
+        }
+
+        var xlength = Math.abs(region['min_x'] - region['max_x'])*1;
+        var xmin = Math.min(region['min_x'], region['max_x'])*1;
+        var xcenter = ((xmin + xlength/2)|0);
+
+        var zlength = Math.abs(region['min_z'] - region['max_z'])*1;
+        var zmin = Math.min(region['min_z'], region['max_z'])*1;
+        var zcenter = ((zmin + zlength/2)|0);
+
+        var ylength = Math.max(region['min_y'], region['max_y']) - Math.min(region['min_y'], region['max_y']);
+        var ycenter = ((Math.min(region['min_y'], region['max_y'])+ylength/2)|0);
+
+        var value = (xlength+1)*(zlength+1)*(ylength+1);
+
+        var ololoazaza = value > 1000000 ? " ololoazaza" : "";
+        var bezvladelca = region['owners'].length == 0 ? " bezvladelca" : "";
+
+        var members = "-";
+        if(region['members'].length != 0) {
+          members = [];
+          for(var y = 0; y < region['members'].length; y++) {
+            members.push(api.player(region['members'][y]));
+          }
+          members = members.join(", ");
+        }
+
+        var owners = "-";
+        if(region['owners'].length != 0) {
+          owners = [];
+          for(var y = 0; y < region['owners'].length; y++) {
+            owners.push(api.player(region['owners'][y]));
+          }
+          owners = owners.join(", ");
+        }
+
+        var b = document.createElement("div");
+        b.setAttribute("class", "region " + (region['parent'] != null ? "local" : "") + ololoazaza + bezvladelca);
+        b.setAttribute("style",
+"margin:" + zmin + "px 0 0 " + xmin + "px;width:" + xlength + "px;height:" + zlength + "px;");
+        b.setAttribute("title", region['region'] + ", /tp " + ((Math.min(region['min_x'], region['max_x'])+Math.abs(region['min_x'] - region['max_x'])/2)|0)+","+ycenter+","+((Math.min(region['min_z'], region['max_z'])+Math.abs(region['min_z'] - region['max_z'])/2)|0));
+        b.setAttribute("data-title", "<b>Регион:</b> " + api.region(region['region'], world) + ", " + api.coord(xcenter, ycenter, zcenter, world) + "<br>"
+          +"<b>Владельцы:</b> "+owners+"<br>"
+          +"<b>Жители:</b> "+members+"<br>"
+          +"<b>Флаги:</b> "+(region['flags'].length==0?"-":region['flags'].join(", "))+"<br>"
+          +"<b>Объём:</b> "+(xlength+1)+"&times;"+(ylength+1)+"&times;"+(zlength+1)+" = "+api.number(value)+" блок(ов)<br>"
+          +"<b>Дата создания:</b> "+api.time(region['created']) );
+
+        a.appendChild(b);
+      }
+
+      map.appendChild(a);
+
+      if(data['count'] > 100) getRegions(offset + 100);
+    }
+  });
+}
+
+function getWarps(offset) {
+  offset = offset || 0;
+
+  $.ajax({
+    url: "http://api.ensemplix.ru/v2/warps/?world=" + world + "&offset=" + offset,
+    success: function(data) {
+      if(offset == 0) warpsValue = data['count'];
+
+      var warps = data['warps'];
+      warpsLoaded = (warps.length + offset);
+      recalculateProgress();
+
+      warps_db = warps_db.concat(warps);
+
+      var a = document.createDocumentFragment();
+
+      for(var x = 0; x < warps.length; x++) {
+        var warp = warps[x];
+
+        var xpos = Math.round(warp['x']);
+        var ypos = Math.round(warp['y']);
+        var zpos = Math.round(warp['z']);
+
+        var max = Math.max(Math.abs(xpos), Math.abs(zpos));
+        if(max > size) {
+          size = max;
+          changeMapSize(size);
+        }
+
+        var b = document.createElement("div");
+        b.setAttribute("class", "warp");
+        b.setAttribute("style", "margin:"+zpos+"px 0 0 "+xpos+"px;-webkit-transform:rotate(" + Math.round(warp['yaw'])+ "deg);");
+        b.setAttribute("data-title", "<b>Варп:</b> " + api.warp(warp['warp'], world) + ", " + api.coord(xpos, ypos, zpos, world) + "<br><b>Владелец:</b> " + api.player(warp['owner']) + "<br><b>Дата создания:</b> " + api.time(warp['created']));
+        b.innerHTML = "&darr;";
+
+        a.appendChild(b);
+      }
+
+      map.appendChild(a);
+
+      if(data['count'] > Math.max(data['offset'], 100)) getWarps(offset + 100);
+    }
+  });
+}
+
+document.addEventListener("click", function (e) {
+  if(/region/.test(e.target.className) || e.target.className == "warp") {
+    statusEl.innerHTML = e.target.getAttribute("data-title");
+    statusEl.style.display = "";
+  }
+});
+</script>
+
+</body>
+</html>
