@@ -263,6 +263,7 @@ function parseRegions(regions) {
     var value = (xlength+1)*(zlength+1)*(ylength+1);
 
     var regionbolshe1kk = value > 1000000 ? " regionbolshe1kk" : "";
+  /*
     var bezvladelca = region['owners'].length == 0 ? " bezvladelca" : "";
 
     var members = "-";
@@ -282,15 +283,15 @@ function parseRegions(regions) {
       }
       owners = owners.join(", ");
     }
-
+*/
     var b = document.createElement("div");
-    b.setAttribute("class", "region " + (region['parent'] != null ? "local" : "") + regionbolshe1kk + bezvladelca);
+    b.setAttribute("class", "region " + (region['parent'] != null ? "local" : "") + regionbolshe1kk);
     b.setAttribute("style", "margin:" + zmin + "px 0 0 " + xmin + "px;width:" + xlength + "px;height:" + zlength + "px;");
     b.setAttribute("title", region['region'] + ", /tp " + ((Math.min(region['min_x'], region['max_x'])+Math.abs(region['min_x'] - region['max_x'])/2)|0)+","+ycenter+","+((Math.min(region['min_z'], region['max_z'])+Math.abs(region['min_z'] - region['max_z'])/2)|0));
     b.setAttribute("data-title", "<b>Регион:</b> " + api.region(region['region'], world) + ", " + api.coord(xcenter, ycenter, zcenter, world) + "<br>"
-      +"<b>Владельцы:</b> "+owners+"<br>"
-      +"<b>Жители:</b> "+members+"<br>"
-      +"<b>Флаги:</b> "+(region['flags'].length==0?"-":region['flags'].join(", "))+"<br>"
+//      +"<b>Владельцы:</b> "+owners+"<br>"
+//      +"<b>Жители:</b> "+members+"<br>"
+//      +"<b>Флаги:</b> "+(region['flags'].length==0?"-":region['flags'].join(", "))+"<br>"
       +"<b>Объём:</b> "+(xlength+1)+"&times;"+(ylength+1)+"&times;"+(zlength+1)+" = "+api.number(value)+" блок(ов)<br>"
       +"<b>Дата создания:</b> "+api.time(region['created']) );
 
